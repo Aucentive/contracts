@@ -1,0 +1,17 @@
+[profile.default]
+src = 'contracts'
+test = 'forge-tests'
+out = 'artifactsforge'
+cache = false
+gas_reports = ["*"]
+lib = ['forge-tests/lib']
+remappings = [
+    'eth-gas-reporter/=node_modules/eth-gas-reporter/',
+    'forge-tests/=forge-tests',
+    'forge-std/=lib/forge-std/src/',
+    'lib/=lib/',
+    '@axelar-network/axelar-gmp-sdk-solidity/contracts/=lib/axelar-gmp-sdk-solidity/contracts/',
+    '@uma/core/=lib/protocol/packages/core/'
+]
+fs_permissions = [{ access = "read", path = "./artifactsforge"}]
+libs = ["node_modules", "lib"]
