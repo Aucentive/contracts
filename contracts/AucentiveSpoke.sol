@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
 import {IAxelarGateway} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
 import {IERC20} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IERC20.sol";
 
+// import {AddressWhitelist} from "@uma/core/contracts/common/implementation/AddressWhitelist.sol";
+// import {OptimisticOracleV2Interface, IERC20} from "@uma/core/contracts/optimistic-oracle-v2/interfaces/OptimisticOracleV2Interface.sol";
+// import {IdentifierWhitelistInterface} from "@uma/core/contracts/data-verification-mechanism/interfaces/IdentifierWhitelistInterface.sol";
+
 contract AucentiveSpoke {
   IAxelarGateway public immutable gateway;
   IAxelarGasService public immutable gasService;
-
-  IERC20 public immutable USDC;
 
   event ServicePaymentSent(bytes32 serviceId, uint256 payAmount);
   event ServicePaymentConfirmed(bytes32 serviceId);
@@ -29,7 +31,7 @@ contract AucentiveSpoke {
     ServicePaymentSlipStatus status;
   }
 
-  // IERC20 public USDC;
+  IERC20 public PAYMENT_TOKEN;
 
   address private _owner;
 
@@ -38,9 +40,10 @@ contract AucentiveSpoke {
   mapping(address => uint256) private _outstandingBalances; // earned balances that are not yet withdrawn
 
   constructor(address _gateway, address _gasService) {
+    // address _umaOo
     gateway = IAxelarGateway(_gateway);
     gasService = IAxelarGasService(_gasService);
-    USDC = IERC20(gateway.tokenAddresses("USDC"));
+    PAYMENT_TOKEN = IERC20(gateway.tokenAddresses("USDC"));
 
     _transferOwnership(msg.sender);
   }
@@ -55,7 +58,7 @@ contract AucentiveSpoke {
     require(balance > 0, "No balance to withdraw");
 
     _outstandingBalances[recipient] = 0;
-    USDC.transfer(recipient, balance);
+    PAYMENT_TOKEN.transfer(recipient, balance);
   }
 
   /**
@@ -74,16 +77,16 @@ contract AucentiveSpoke {
     require(msg.value > 0, "Gas amount must be greater than 0");
 
     require(
-      USDC.allowance(msg.sender, address(this)) >= payAmount,
+      PAYMENT_TOKEN.allowance(msg.sender, address(this)) >= payAmount,
       "Insufficient allowance for payment"
     );
 
     require(msg.value > 0, "Gas payment is required");
 
     // Approval required
-    USDC.transferFrom(msg.sender, address(this), payAmount);
+    PAYMENT_TOKEN.transferFrom(msg.sender, address(this), payAmount);
 
-    USDC.approve(address(gateway), payAmount);
+    PAYMENT_TOKEN.approve(address(gateway), payAmount);
 
     // First, lock-in tokens on this contract (we don't actually send the tokens to the target chain)
     // Then, send the payload of `serviceId` and `payAmount` to the target chain
@@ -111,39 +114,22 @@ contract AucentiveSpoke {
     emit ServicePaymentSent(serviceId, payAmount);
   }
 
-  function sendToMany(
-    string memory destinationChain,
-    string memory destinationAddress,
-    address[] calldata destinationAddresses,
-    string memory symbol,
-    uint256 amount
+  function settleService(
+    string calldata destinationChain,
+    string calldata destinationAddress,
+    string calldata value
   ) external payable {
     require(msg.value > 0, "Gas payment is required");
 
-    address tokenAddress = gateway.tokenAddresses(symbol);
-
-    IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
-    IERC20(tokenAddress).approve(address(gateway), amount);
-
-    bytes memory payload = abi.encode(destinationAddresses);
-
-    gasService.payNativeGasForContractCallWithToken{value: msg.value}(
+    bytes memory payload = abi.encode(value);
+    gasService.payNativeGasForContractCall{value: msg.value}(
       address(this),
       destinationChain,
       destinationAddress,
       payload,
-      symbol,
-      amount,
       msg.sender
     );
-
-    gateway.callContractWithToken(
-      destinationChain,
-      destinationAddress,
-      payload,
-      symbol,
-      amount
-    );
+    gateway.callContract(destinationChain, destinationAddress, payload);
   }
 
   /**

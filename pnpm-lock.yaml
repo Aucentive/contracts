@@ -411,7 +411,7 @@ packages:
       eth-ens-namehash: 2.0.8
       solc: 0.4.26
       testrpc: 0.0.1
-      web3-utils: 1.8.2
+      web3-utils: 1.10.2
     dev: false
 
   /@ensdomains/ensjs@2.1.0:

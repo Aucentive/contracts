@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
@@ -53,7 +53,7 @@ contract AucentiveTest is Test {
   function setUp() public {
     USDC = new MockERC20();
 
-    aucHub = new AucentiveHub(address(0x1), address(0x1), address(USDC));
+    aucHub = new AucentiveHub(address(0x1), address(0x1), address(USDC), address(0x1));
   }
 
   function testServiceCreate() public {

@@ -8,16 +8,17 @@ contract DeployAucentiveHub is Script {
   function run() external {
     vm.startBroadcast();
 
-    (address gateway, address gasService, address usdc) = getAddresses();
+    (address gateway, address gasService, address usdc, address ftDataAsserter) = getAddresses();
 
     require(
       gateway != address(0x0) &&
         gasService != address(0x0) &&
-        usdc != address(0x0),
+        usdc != address(0x0) &&
+        ftDataAsserter != address(0x0),
       "Invalid addresses"
     );
 
-    new AucentiveHub(gateway, gasService, usdc);
+    new AucentiveHub(gateway, gasService, usdc, ftDataAsserter);
 
     vm.stopBroadcast();
   }
@@ -25,7 +26,7 @@ contract DeployAucentiveHub is Script {
   function getAddresses()
     public
     view
-    returns (address gateway, address gasService, address usdc)
+    returns (address gateway, address gasService, address usdc, address ftDataAsserter)
   {
     if (block.chainid == 8453) {
       // Base Mainnet
@@ -39,6 +40,7 @@ contract DeployAucentiveHub is Script {
       gateway = address(0xe432150cce91c13a887f7D836923d5597adD8E31);
       gasService = address(0xbE406F0189A0B4cf3A05C286473D23791Dd44Cc6);
       usdc = address(0xF175520C52418dfE19C8098071a252da48Cd1C19);
+      ftDataAsserter = address(0x4638d59b4F046F121549B9a6Af70cB3c057f901d);
     }
   }
 }
